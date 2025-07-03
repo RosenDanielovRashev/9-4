@@ -222,7 +222,7 @@ fig.update_layout(
 
 # --- Добавяне на невидим trace за втората ос (за да се покаже мащабът)
 fig.add_trace(go.Scatter(
-    x=[0, 10000],
+    x=[0, 1000],
     y=[None, None],  # y не влияе
     mode='lines',
     line=dict(color='rgba(0,0,0,0)'),
