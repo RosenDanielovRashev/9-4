@@ -273,5 +273,4 @@ if ('x_orange' in locals()) and (x_orange is not None):
     x_val = round(x_orange, 3)
     st.markdown(f"**σᵣ = {sigma_r}**")
 else:
-    st.markdown("**Оранжева точка (x) = -**")
     st.markdown("**Ꚍμ/p = -** (Няма изчислена стойност)")
