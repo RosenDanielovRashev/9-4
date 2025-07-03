@@ -87,7 +87,7 @@ for val in unique_esr_eo:
         line=dict(width=2)
     ))
 
-# --- Функция за интерполация на точка по H/D
+# Функция за интерполация на точка по H/D
 def get_point_on_curve(df, x_target):
     x_vals = df['H/D'].values
     y_vals = df['y'].values
@@ -100,7 +100,7 @@ def get_point_on_curve(df, x_target):
             return np.array([x_target, y_interp])
     return None
 
-# --- Интерполация на червена точка между изолинии
+# Интерполация за червената точка между Esr/Eo изолинии
 unique_esr_eo_sorted = sorted(df_esr_eo['Esr_Eo'].unique())
 lower_vals = [v for v in unique_esr_eo_sorted if v <= Esr_over_Eo]
 upper_vals = [v for v in unique_esr_eo_sorted if v >= Esr_over_Eo]
@@ -127,47 +127,66 @@ if lower_vals and upper_vals:
 else:
     point_on_esr_eo = None
 
-# --- Визуализиране на червената точка и линии
+# Функция за интерполация по y за дадена fi изолиния
+def interp_x_at_y(df_curve, y_target):
+    x_arr = df_curve['H/D'].values
+    y_arr = df_curve['y'].values
+    for k in range(len(y_arr) - 1):
+        y1, y2 = y_arr[k], y_arr[k + 1]
+        if (y1 - y_target) * (y2 - y_target) <= 0:
+            x1, x2 = x_arr[k], x_arr[k + 1]
+            if y2 == y1:
+                return x1
+            t = (y_target - y1) / (y2 - y1)
+            return x1 + t * (x2 - x1)
+    return None
+
+# Интерполация на x (H/D) между fi изолинии
+def interp_x_for_fi_interp(df, fi_target, y_target):
+    fi_values = sorted(df['fi'].unique())
+    lower_fi = [v for v in fi_values if v <= fi_target]
+    upper_fi = [v for v in fi_values if v >= fi_target]
+
+    if not lower_fi or not upper_fi:
+        return None
+
+    fi1 = lower_fi[-1]
+    fi2 = upper_fi[0]
+
+    if fi1 == fi2:
+        df1 = df[df['fi'] == fi1].sort_values(by='y')
+        return interp_x_at_y(df1, y_target)
+    else:
+        df1 = df[df['fi'] == fi1].sort_values(by='y')
+        df2 = df[df['fi'] == fi2].sort_values(by='y')
+        x1 = interp_x_at_y(df1, y_target)
+        x2 = interp_x_at_y(df2, y_target)
+        if x1 is not None and x2 is not None:
+            t = (fi_target - fi1) / (fi2 - fi1)
+            return x1 + t * (x2 - x1)
+    return None
+
+# Добавяне на червена точка и вертикална червена линия
 if point_on_esr_eo is not None:
     fig.add_trace(go.Scatter(
         x=[point_on_esr_eo[0]],
         y=[point_on_esr_eo[1]],
         mode='markers',
         marker=dict(color='red', size=10),
-        name='Червена точка (интерполирана)'
+        name='Червена точка (Esr/Eo)'
     ))
-    
     fig.add_trace(go.Scatter(
         x=[ratio, ratio],
         y=[0, point_on_esr_eo[1]],
         mode='lines',
         line=dict(color='red', dash='dash'),
-        name='Вертикална линия H/D → Esr/Eo (червена)'
+        name='Вертикална линия H/D → Esr/Eo'
     ))
-    
-    # Оранжева точка
+
+    # Добавяне на оранжева точка чрез интерполация по fi
     y_red = point_on_esr_eo[1]
-    
-    def interp_x_for_fi(df, fi_target, y_target):
-        df_fi_target = df[df['fi'] == fi_target]
-        x_arr = df_fi_target['H/D'].values
-        y_arr = df_fi_target['y'].values
-        
-        for k in range(len(y_arr)-1):
-            y1, y2 = y_arr[k], y_arr[k+1]
-            if (y1 - y_target)*(y2 - y_target) <= 0:
-                x1, x2 = x_arr[k], x_arr[k+1]
-                if y2 == y1:
-                    return x1
-                t = (y_target - y1)/(y2 - y1)
-                return x1 + t*(x2 - x1)
-        return None
+    x_orange = interp_x_for_fi_interp(df_fi, Fi_input, y_red)
 
-    if Fi_input not in df_fi['fi'].values:
-        Fi_input = min(df_fi['fi'].unique(), key=lambda x: abs(x - Fi_input))
-
-    x_orange = interp_x_for_fi(df_fi, Fi_input, y_red)
-    
     if x_orange is not None:
         fig.add_trace(go.Scatter(
             x=[x_orange],
@@ -176,21 +195,19 @@ if point_on_esr_eo is not None:
             marker=dict(color='orange', size=10),
             name='Оранжева точка'
         ))
-        
         fig.add_trace(go.Scatter(
             x=[point_on_esr_eo[0], x_orange],
             y=[y_red, y_red],
             mode='lines',
             line=dict(color='orange', dash='dash'),
-            name='Хоризонтална линия (червена → оранжева)'
+            name='Хоризонтална линия'
         ))
-        
         fig.add_trace(go.Scatter(
             x=[x_orange, x_orange],
             y=[y_red, 1.35],
             mode='lines',
             line=dict(color='orange', dash='dash'),
-            name='Вертикална линия оранжева точка → y=1.35'
+            name='Вертикална линия до y=1.35'
         ))
 
 # Настройка на графиката
