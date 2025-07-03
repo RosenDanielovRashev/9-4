@@ -36,7 +36,7 @@ H = h_array.sum()
 weighted_sum = np.sum(E_array * h_array)
 Esr = weighted_sum / H if H != 0 else 0
 
-# Формули и резултати (с latex)
+# Формули и резултати
 st.latex(r"H = \sum_{i=1}^n h_i")
 h_terms = " + ".join([f"h_{to_subscript(i+1)}" for i in range(n)])
 st.latex(r"H = " + h_terms)
@@ -55,8 +55,8 @@ st.latex(r"\frac{Esr}{E_o} = \frac{" + f"{Esr:.3f}" + "}{" + f"{Eo}" + "} = " + 
 Esr_over_Eo = Esr / Eo if Eo != 0 else 0
 
 # Зареждане на данни
-df_fi = pd.read_csv("fi.csv", delimiter=';')
-df_esr_eo = pd.read_csv("Esr_Eo.csv", delimiter=';')
+df_fi = pd.read_csv("fi.csv")
+df_esr_eo = pd.read_csv("Esr_Eo.csv")
 
 df_fi.rename(columns={df_fi.columns[2]: 'fi'}, inplace=True)
 df_esr_eo.rename(columns={df_esr_eo.columns[2]: 'Esr_Eo'}, inplace=True)
@@ -87,10 +87,7 @@ for val in unique_esr_eo:
         line=dict(width=2)
     ))
 
-# --- ЧЕРВЕНА ТОЧКА (вертикална линия от H/D до пресичане с Esr/Eo изолиния)
-closest_val = min(unique_esr_eo, key=lambda x: abs(x - Esr_over_Eo))
-df_closest = df_esr_eo[df_esr_eo['Esr_Eo'] == closest_val].sort_values(by='H/D')
-
+# Функция за линейна интерполация на точка (x_target) по H/D за дадена крива
 def get_point_on_curve(df, x_target):
     x_vals = df['H/D'].values
     y_vals = df['y'].values
@@ -103,6 +100,10 @@ def get_point_on_curve(df, x_target):
             return np.array([x_target, y_interp])
     return None
 
+# --- ЧЕРВЕНА ТОЧКА и вертикална червена линия от x=H/D до y на червената точка
+closest_val = min(unique_esr_eo, key=lambda x: abs(x - Esr_over_Eo))
+df_closest = df_esr_eo[df_esr_eo['Esr_Eo'] == closest_val].sort_values(by='H/D')
+
 point_on_esr_eo = get_point_on_curve(df_closest, ratio)
 
 if point_on_esr_eo is not None:
@@ -114,82 +115,78 @@ if point_on_esr_eo is not None:
         marker=dict(color='red', size=10),
         name='Червена точка (Esr/Eo)'
     ))
-    # Вертикална линия от H/D до Esr/Eo
+    
+    # Вертикална линия от x=H/D от 0 до y на червената точка
     fig.add_trace(go.Scatter(
-        x=[point_on_esr_eo[0], point_on_esr_eo[0]],
+        x=[ratio, ratio],
         y=[0, point_on_esr_eo[1]],
         mode='lines',
         line=dict(color='red', dash='dash'),
-        name='Вертикална линия H/D → Esr/Eo'
+        name='Вертикална линия H/D → Esr/Eo (червена)'
     ))
-
-    # --- ОРАНЖЕВА ТОЧКА (проекция хоризонтално към fi)
-    # Намерение на хоризонталната линия от червената точка до пресичане с fi
-    y_target = point_on_esr_eo[1]
-
-    # Функция за намиране на x за дадено y по дадена линия fi
-    def interp_x_for_y(df, y_target):
-        x_arr = df['H/D'].values
-        y_arr = df['y'].values
-        for k in range(len(y_arr) - 1):
-            y1, y2 = y_arr[k], y_arr[k + 1]
-            if (y1 - y_target) * (y2 - y_target) <= 0:
-                x1, x2 = x_arr[k], x_arr[k + 1]
+    
+    # --- ОРАНЖЕВА ТОЧКА и хоризонтална линия от червената точка до пресичане с Fi_input по y
+    y_red = point_on_esr_eo[1]
+    
+    # Функция за намиране на x (H/D) за дадена y и Fi
+    def interp_x_for_fi(df, fi_target, y_target):
+        df_fi_target = df[df['fi'] == fi_target]
+        x_arr = df_fi_target['H/D'].values
+        y_arr = df_fi_target['y'].values
+        
+        for k in range(len(y_arr)-1):
+            y1, y2 = y_arr[k], y_arr[k+1]
+            if (y1 - y_target)*(y2 - y_target) <= 0:
+                x1, x2 = x_arr[k], x_arr[k+1]
                 if y2 == y1:
                     return x1
-                t_local = (y_target - y1) / (y2 - y1)
-                return x1 + t_local * (x2 - x1)
+                t = (y_target - y1)/(y2 - y1)
+                return x1 + t*(x2 - x1)
         return None
 
-    # Намерение на интерполация между две fi линии около Fi_input
-    fi_values_sorted = sorted(df_fi['fi'].unique())
-    lower_index_fi = None
-    for i in range(len(fi_values_sorted) - 1):
-        if fi_values_sorted[i] <= Fi_input <= fi_values_sorted[i + 1]:
-            lower_index_fi = i
-            break
+    # Проверка дали Fi_input съществува в df_fi['fi'], ако не - използваме най-близката стойност
+    if Fi_input not in df_fi['fi'].values:
+        Fi_input = min(df_fi['fi'].unique(), key=lambda x: abs(x - Fi_input))
 
-    if lower_index_fi is not None:
-        fi_lower_val = fi_values_sorted[lower_index_fi]
-        fi_upper_val = fi_values_sorted[lower_index_fi + 1]
+    x_orange = interp_x_for_fi(df_fi, Fi_input, y_red)
+    
+    if x_orange is not None:
+        # Оранжева точка
+        fig.add_trace(go.Scatter(
+            x=[x_orange],
+            y=[y_red],
+            mode='markers',
+            marker=dict(color='orange', size=10),
+            name='Оранжева точка'
+        ))
+        
+        # Хоризонтална линия от червената точка до оранжевата точка
+        fig.add_trace(go.Scatter(
+            x=[point_on_esr_eo[0], x_orange],
+            y=[y_red, y_red],
+            mode='lines',
+            line=dict(color='orange', dash='dash'),
+            name='Хоризонтална линия (червена → оранжева)'
+        ))
+        
+        # Вертикална линия от оранжевата точка до y=1.35
+        fig.add_trace(go.Scatter(
+            x=[x_orange, x_orange],
+            y=[y_red            , 1.35],
+            mode='lines',
+            line=dict(color='orange', dash='dash'),
+            name='Вертикална линия оранжева точка → y=1.35'
+        ))
 
-        df_fi_lower = df_fi[df_fi['fi'] == fi_lower_val].sort_values(by='H/D')
-        df_fi_upper = df_fi[df_fi['fi'] == fi_upper_val].sort_values(by='H/D')
-
-        x_fi_lower = interp_x_for_y(df_fi_lower, y_target)
-        x_fi_upper = interp_x_for_y(df_fi_upper, y_target)
-
-        if x_fi_lower is not None and x_fi_upper is not None:
-            t_fi = (Fi_input - fi_lower_val) / (fi_upper_val - fi_lower_val)
-            x_fi_interp = x_fi_lower + t_fi * (x_fi_upper - x_fi_lower)
-
-            # Оранжева точка
-            fig.add_trace(go.Scatter(
-                x=[x_fi_interp],
-                y=[y_target],
-                mode='markers',
-                marker=dict(color='orange', size=10),
-                name='Оранжева точка'
-            ))
-
-            # Вертикална линия от оранжевата точка до y=1.35
-            fig.add_trace(go.Scatter(
-                x=[x_fi_interp, x_fi_interp],
-                y=[y_target, 1.35],
-                mode='lines',
-                line=dict(color='orange', dash='dash'),
-                name='Вертикална линия до y=1.35'
-            ))
-
-# Настройки на графиката
+# Настройка на графиката
 fig.update_layout(
+    title="Графика на изолинии и точки",
     xaxis_title="H/D",
     yaxis_title="y",
-    legend_title="Изолинии",
-    yaxis=dict(range=[0, max(1.5, df_fi['y'].max())]),
-    width=800,
-    height=600,
-    margin=dict(l=50, r=50, t=50, b=50)
+    legend_title="Легенда",
+    width=900,
+    height=600
 )
 
 st.plotly_chart(fig, use_container_width=True)
+
