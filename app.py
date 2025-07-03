@@ -220,38 +220,34 @@ fig.update_layout(
     height=600
 )
 
-# Добавяне на невидим trace за xaxis2, за да се появи
+# Невидим trace за xaxis2, за да се покаже оста
 fig.add_trace(go.Scatter(
-    x=[0, 1],
-    y=[None, None],  # Не е важно
+    x=[0, 0.20],
+    y=[None, None],
     mode='lines',
     line=dict(color='rgba(0,0,0,0)'),
     showlegend=False,
     hoverinfo='skip',
-    xaxis='x2'  # Използва втората ос
+    xaxis='x2'
 ))
 
-# Определяне на границите на основната ос (ако са налични)
-xaxis_range = fig.layout.xaxis.range if fig.layout.xaxis.range else [0, 1]
-
-# Ъпдейт на layout с втората ос (xaxis2)
 fig.update_layout(
     title='Графика на изолинии',
     xaxis=dict(
         title='H/D',
         showgrid=True,
         zeroline=False,
+        # тук си остави диапазона на твоята основна ос, примерно:
+        range=[0, max(ratio * 1.5, 1)]  # или фиксирай максимума, както ти трябва
     ),
     xaxis2=dict(
         overlaying='x',
         side='top',
-        range=[xaxis_range[0], xaxis_range[1]],
+        range=[0, 0.20],  # фиксиран мащаб на втората ос от 0 до 0.20
         showgrid=False,
         zeroline=False,
-        tickvals=[round(i * 0.01, 2) for i in range(21)],  # 0 до 0.20
-        ticktext=[f"{round(i * 0.01, 2):.2f}" for i in range(21)],
+        ticks="outside",
         title='σᵣ / p',
-        ticks="outside"
     ),
     yaxis=dict(
         title='y',
