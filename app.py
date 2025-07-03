@@ -31,32 +31,33 @@ for i in range(n):
 h_array = np.array(h_values)
 E_array = np.array(E_values)
 
-# Изчисляване на H и Esr за всички n слоя
+# Изчисляване на H и Esr
 H = h_array.sum()
 weighted_sum = np.sum(E_array * h_array)
 Esr = weighted_sum / H if H != 0 else 0
 
+# Формули и резултати
 st.latex(r"H = \sum_{i=1}^n h_i")
 h_terms = " + ".join([f"h_{to_subscript(i+1)}" for i in range(n)])
 st.latex(r"H = " + h_terms)
 st.write(f"H = {H:.3f}")
 
 st.latex(r"Esr = \frac{\sum_{i=1}^n (E_i \cdot h_i)}{\sum_{i=1}^n h_i}")
-numerator = " + ".join([f"{E_values[i]:.3f} \cdot {h_values[i]:.3f}" for i in range(n)])
-denominator = " + ".join([f"{h_values[i]:.3f}" for i in range(n)])
+numerator = " + ".join([f"{E_values[i]} \cdot {h_values[i]}" for i in range(n)])
+denominator = " + ".join([f"{h_values[i]}" for i in range(n)])
 formula_with_values = rf"Esr = \frac{{{numerator}}}{{{denominator}}} = \frac{{{weighted_sum:.3f}}}{{{H:.3f}}} = {Esr:.3f}"
 st.latex(formula_with_values)
 
 ratio = H / D if D != 0 else 0
-st.latex(r"\frac{H}{D} = \frac{" + f"{H:.3f}" + "}{" + f"{D:.3f}" + "} = " + f"{ratio:.3f}")
+st.latex(r"\frac{H}{D} = \frac{" + f"{H:.3f}" + "}{" + f"{D}" + "} = " + f"{ratio:.3f}")
 
-# Изчисление на Esr/Eo
+st.latex(r"\frac{Esr}{E_o} = \frac{" + f"{Esr:.3f}" + "}{" + f"{Eo}" + "} = " + f"{Esr / Eo:.3f}")
 Esr_over_Eo = Esr / Eo if Eo != 0 else 0
-st.latex(r"\frac{Esr}{Eo} = \frac{" + f"{Esr:.3f}" + "}{" + f"{Eo:.3f}" + "} = " + f"{Esr_over_Eo:.3f}")
 
-# Зареждане на данни от CSV
+# Зареждане на данни
 df_fi = pd.read_csv("fi.csv")
 df_esr_eo = pd.read_csv("Esr_Eo.csv")
+
 df_fi.rename(columns={df_fi.columns[2]: 'fi'}, inplace=True)
 df_esr_eo.rename(columns={df_esr_eo.columns[2]: 'Esr_Eo'}, inplace=True)
 
@@ -86,74 +87,41 @@ for val in unique_esr_eo:
         line=dict(width=2)
     ))
 
-# Интерполация
-target_Esr_Eo = Esr_over_Eo
-target_H_D = ratio
+# --- ЧЕРВЕНА ТОЧКА (по H/D и Esr/Eo)
+closest_val = min(unique_esr_eo, key=lambda x: abs(x - Esr_over_Eo))
+df_closest = df_esr_eo[df_esr_eo['Esr_Eo'] == closest_val].sort_values(by='H/D')
 
-esr_eo_values_sorted = sorted(df_esr_eo['Esr_Eo'].unique())
-lower_index = None
-for i in range(len(esr_eo_values_sorted) - 1):
-    if esr_eo_values_sorted[i] <= target_Esr_Eo <= esr_eo_values_sorted[i + 1]:
-        lower_index = i
-        break
+def get_point_on_curve(df, x_target):
+    x_vals = df['H/D'].values
+    y_vals = df['y'].values
+    for i in range(len(x_vals) - 1):
+        if x_vals[i] <= x_target <= x_vals[i + 1]:
+            x1, y1 = x_vals[i], y_vals[i]
+            x2, y2 = x_vals[i + 1], y_vals[i + 1]
+            t = (x_target - x1) / (x2 - x1)
+            y_interp = y1 + t * (y2 - y1)
+            return np.array([x_target, y_interp])
+    return None
 
-if lower_index is not None:
-    lower_val = esr_eo_values_sorted[lower_index]
-    upper_val = esr_eo_values_sorted[lower_index + 1]
+point_on_esr_eo = get_point_on_curve(df_closest, ratio)
 
-    df_lower = df_esr_eo[df_esr_eo['Esr_Eo'] == lower_val].sort_values(by='H/D')
-    df_upper = df_esr_eo[df_esr_eo['Esr_Eo'] == upper_val].sort_values(by='H/D')
-
-    def interp_xy(df, x0):
-        x_arr = df['H/D'].values
-        y_arr = df['y'].values
-        for j in range(len(x_arr) - 1):
-            if x_arr[j] <= x0 <= x_arr[j + 1]:
-                p1 = np.array([x_arr[j], y_arr[j]])
-                p2 = np.array([x_arr[j + 1], y_arr[j + 1]])
-                t = (x0 - x_arr[j]) / (x_arr[j + 1] - x_arr[j])
-                return p1 + t * (p2 - p1)
-        if x0 < x_arr[0]:
-            return np.array([x_arr[0], y_arr[0]])
-        else:
-            return np.array([x_arr[-1], y_arr[-1]])
-
-    point_lower = interp_xy(df_lower, target_H_D)
-    point_upper = interp_xy(df_upper, target_H_D)
-    vec = point_upper - point_lower
-    t = (target_Esr_Eo - lower_val) / (upper_val - lower_val)
-    interp_point = point_lower + t * vec
-    interp_point[0] = ratio
-
+if point_on_esr_eo is not None:
     fig.add_trace(go.Scatter(
-        x=[interp_point[0]],
-        y=[interp_point[1]],
+        x=[point_on_esr_eo[0]],
+        y=[point_on_esr_eo[1]],
         mode='markers',
         marker=dict(color='red', size=10),
-        name='Интерполирана точка'
+        name='Червена точка (Esr/Eo)'
     ))
-
     fig.add_trace(go.Scatter(
-        x=[ratio, ratio],
-        y=[0, interp_point[1]],
+        x=[point_on_esr_eo[0], point_on_esr_eo[0]],
+        y=[0, point_on_esr_eo[1]],
         mode='lines',
         line=dict(color='blue', dash='dash'),
-        name='Вертикална линия до Esr/Eo'
+        name='Вертикална линия H/D → Esr/Eo'
     ))
 
-    def interp_x_for_y(df, y_target, x_col='H/D', y_col='y'):
-        x_arr = df[x_col].values
-        y_arr = df[y_col].values
-        for k in range(len(y_arr) - 1):
-            y1, y2 = y_arr[k], y_arr[k + 1]
-            if (y1 - y_target) * (y2 - y_target) <= 0:
-                x1, x2 = x_arr[k], x_arr[k + 1]
-                if y2 == y1:
-                    return x1
-                t_local = (y_target - y1) / (y2 - y1)
-                return x1 + t_local * (x2 - x1)
-        return None
-
+    # --- ОРАНЖЕВА ТОЧКА (пресичане с fi)
     fi_values_sorted = sorted(df_fi['fi'].unique())
     lower_index_fi = None
     for i in range(len(fi_values_sorted) - 1):
@@ -168,31 +136,44 @@ if lower_index is not None:
         df_fi_lower = df_fi[df_fi['fi'] == fi_lower_val].sort_values(by='H/D')
         df_fi_upper = df_fi[df_fi['fi'] == fi_upper_val].sort_values(by='H/D')
 
-        x_fi_lower = interp_x_for_y(df_fi_lower, interp_point[1])
-        x_fi_upper = interp_x_for_y(df_fi_upper, interp_point[1])
+        def interp_x_for_y(df, y_target):
+            x_arr = df['H/D'].values
+            y_arr = df['y'].values
+            for k in range(len(y_arr) - 1):
+                y1, y2 = y_arr[k], y_arr[k + 1]
+                if (y1 - y_target) * (y2 - y_target) <= 0:
+                    x1, x2 = x_arr[k], x_arr[k + 1]
+                    if y2 == y1:
+                        return x1
+                    t_local = (y_target - y1) / (y2 - y1)
+                    return x1 + t_local * (x2 - x1)
+            return None
+
+        y_target = point_on_esr_eo[1]
+        x_fi_lower = interp_x_for_y(df_fi_lower, y_target)
+        x_fi_upper = interp_x_for_y(df_fi_upper, y_target)
 
         if x_fi_lower is not None and x_fi_upper is not None:
             t_fi = (Fi_input - fi_lower_val) / (fi_upper_val - fi_lower_val)
             x_fi_interp = x_fi_lower + t_fi * (x_fi_upper - x_fi_lower)
-            orange_x = x_fi_interp
-            orange_y = interp_point[1]
 
             fig.add_trace(go.Scatter(
-                x=[orange_x],
-                y=[orange_y],
+                x=[x_fi_interp],
+                y=[y_target],
                 mode='markers',
                 marker=dict(color='orange', size=10),
                 name='Оранжева точка'
             ))
 
             fig.add_trace(go.Scatter(
-                x=[orange_x, orange_x],
-                y=[orange_y, 1.35],
+                x=[x_fi_interp, x_fi_interp],
+                y=[y_target, 1.35],
                 mode='lines',
                 line=dict(color='orange', dash='dash'),
-                name='Вертикална линия от оранжевата точка до y=1.35'
+                name='Вертикална линия до y=1.35'
             ))
 
+# Настройки на графиката
 fig.update_layout(
     xaxis_title="H/D",
     yaxis_title="y",
@@ -202,4 +183,3 @@ fig.update_layout(
 )
 
 st.plotly_chart(fig, use_container_width=True)
-
