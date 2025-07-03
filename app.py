@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import numpy as np
 
-st.title("Определяне на Ꚍμ/p за сързани почви")
+st.title("Определяне на Ꚍμ/p за сързани почви фиг9.4")
 
 def to_subscript(number):
     subscripts = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
