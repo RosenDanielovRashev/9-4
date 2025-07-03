@@ -220,17 +220,21 @@ fig.update_layout(
     height=600
 )
 
-# --- Добавяне на невидим trace за втората ос (за да се покаже мащабът)
+# Добавяне на невидим trace за xaxis2, за да се появи
 fig.add_trace(go.Scatter(
-    x=[0, 1000],
-    y=[None, None],  # y не влияе
+    x=[0, 1],
+    y=[None, None],  # Не е важно
     mode='lines',
     line=dict(color='rgba(0,0,0,0)'),
     showlegend=False,
     hoverinfo='skip',
-    xaxis='x2'  # Свързваме с втората ос
+    xaxis='x2'  # Използва втората ос
 ))
 
+# Определяне на границите на основната ос (ако са налични)
+xaxis_range = fig.layout.xaxis.range if fig.layout.xaxis.range else [0, 1]
+
+# Ъпдейт на layout с втората ос (xaxis2)
 fig.update_layout(
     title='Графика на изолинии',
     xaxis=dict(
@@ -241,18 +245,22 @@ fig.update_layout(
     xaxis2=dict(
         overlaying='x',
         side='top',
-        range=[fig.layout.xaxis.range[0] if fig.layout.xaxis.range else None, 1],
+        range=[xaxis_range[0], xaxis_range[1]],
         showgrid=False,
         zeroline=False,
-        tickvals=[0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.20],
-        ticktext=['0', '0.01', '0.02', '0.03', '0.04', '0.05', '0.06', '0.07', '0.08', '0.09', '0.10', '0.11', '0.12', '0.13', '0.14', '0.15', '0.16', '0.17', '0.18', '0.19', '0.20'],
-        title='σr/p'
+        tickvals=[round(i * 0.01, 2) for i in range(21)],  # 0 до 0.20
+        ticktext=[f"{round(i * 0.01, 2):.2f}" for i in range(21)],
+        title='σᵣ / p',
+        ticks="outside"
     ),
     yaxis=dict(
         title='y',
     ),
-    showlegend=False
+    showlegend=False,
+    height=600,
+    width=900
 )
+
 st.plotly_chart(fig, use_container_width=True)
 
 # Проверка дали x_intercept е дефинирана и не е None
