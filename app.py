@@ -267,9 +267,12 @@ fig.update_layout(
 
 st.plotly_chart(fig, use_container_width=True)
 
-# Проверка дали x_intercept е дефинирана и не е None
-if ('x_intercept' in locals()) and (x_intercept is not None):
-    sigma_r = round(x_intercept / 2, 3)
-    st.markdown(f"**σr = {sigma_r}**")
+# Изчисление на σr от x на оранжевата точка (ако съществува)
+if ('x_orange' in locals()) and (x_orange is not None):
+    sigma_r = round(x_orange / 2, 3)
+    x_val = round(x_orange, 3)
+    st.markdown(f"**Оранжева точка (x) = {x_val}**")
+    st.markdown(f"**σᵣ = x / 2 = {x_val} / 2 = {sigma_r}**")
 else:
-    st.markdown("**σr = -** (Няма изчислена стойност)")
+    st.markdown("**Оранжева точка (x) = -**")
+    st.markdown("**σᵣ = -** (Няма изчислена стойност)")
