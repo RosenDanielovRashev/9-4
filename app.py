@@ -222,7 +222,7 @@ fig.update_layout(
 
 # --- Добавяне на невидим trace за втората ос (за да се покаже мащабът)
 fig.add_trace(go.Scatter(
-    x=[0, 1],
+    x=[0, 2],
     y=[None, None],  # y не влияе
     mode='lines',
     line=dict(color='rgba(0,0,0,0)'),
@@ -241,7 +241,7 @@ fig.update_layout(
     xaxis2=dict(
         overlaying='x',
         side='top',
-        range=[fig.layout.xaxis.range[0] if fig.layout.xaxis.range else None, 20],
+        range=[fig.layout.xaxis.range[0] if fig.layout.xaxis.range else None, 1],
         showgrid=False,
         zeroline=False,
         tickvals=[0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.20],
