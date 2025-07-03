@@ -220,9 +220,13 @@ fig.update_layout(
     height=600
 )
 
-# Невидим trace за xaxis2, за да се покаже оста
+# Определи фиксиран мащаб на основната ос (например 0 до 2)
+xaxis_min = 0
+xaxis_max = 2
+
+# Добавяне на невидим trace, за да се покаже втората ос x2
 fig.add_trace(go.Scatter(
-    x=[0, 0.20],
+    x=[xaxis_min, xaxis_max],
     y=[None, None],
     mode='lines',
     line=dict(color='rgba(0,0,0,0)'),
@@ -237,16 +241,17 @@ fig.update_layout(
         title='H/D',
         showgrid=True,
         zeroline=False,
-        # тук си остави диапазона на твоята основна ос, примерно:
-        range=[0, max(ratio * 1.5, 1)]  # или фиксирай максимума, както ти трябва
+        range=[xaxis_min, xaxis_max],  # фиксиран диапазон на основната ос
     ),
     xaxis2=dict(
         overlaying='x',
         side='top',
-        range=[0, 0.20],  # фиксиран мащаб на втората ос от 0 до 0.20
+        range=[xaxis_min, xaxis_max],  # същия диапазон, за да са еднакви дължините
         showgrid=False,
         zeroline=False,
         ticks="outside",
+        tickvals=np.linspace(xaxis_min, xaxis_max, 11),  # примерно 11 tick-а
+        ticktext=[f"{(0.20 * (x - xaxis_min) / (xaxis_max - xaxis_min)):.3f}" for x in np.linspace(xaxis_min, xaxis_max, 11)],  # мащабирани стойности
         title='σᵣ / p',
     ),
     yaxis=dict(
