@@ -12,8 +12,8 @@ def to_subscript(number):
 # Входни параметри
 n = st.number_input("Брой пластове (n)", min_value=2, step=1, value=3)
 D = st.selectbox("Избери D", options=[32.04, 34.0], index=0)
-Eo = st.number_input("Eo", value=100.0, step=0.1)
-Fi_input = st.number_input("Fi (ϕ) стойност", value=0.3, step=0.01)
+Eo = round(st.number_input("Eo", value=100.0, step=0.1), 3)
+Fi_input = round(st.number_input("Fi (ϕ) стойност", value=0.3, step=0.01), 3)
 
 # Въвеждане на h_i и E_i за всеки пласт
 st.markdown("### Въведи стойности за всеки пласт")
@@ -22,19 +22,19 @@ E_values = []
 cols = st.columns(2)
 for i in range(n):
     with cols[0]:
-        h = st.number_input(f"h{to_subscript(i+1)}", value=4.0, step=0.1, key=f"h_{i}")
+        h = round(st.number_input(f"h{to_subscript(i+1)}", value=4.0, step=0.1, key=f"h_{i}"), 3)
         h_values.append(h)
     with cols[1]:
-        E = st.number_input(f"E{to_subscript(i+1)}", value=1000.0, step=0.1, key=f"E_{i}")
+        E = round(st.number_input(f"E{to_subscript(i+1)}", value=1000.0, step=0.1, key=f"E_{i}"), 3)
         E_values.append(E)
 
 h_array = np.array(h_values)
 E_array = np.array(E_values)
 
 # Изчисляване на H и Esr за всички n слоя
-H = h_array.sum()
-weighted_sum = np.sum(E_array * h_array)
-Esr = weighted_sum / H if H != 0 else 0
+H = round(h_array.sum(), 3)
+weighted_sum = round(np.sum(E_array * h_array), 3)
+Esr = round(weighted_sum / H if H != 0 else 0, 3)
 
 st.latex(r"H = \sum_{i=1}^n h_i")
 h_terms = " + ".join([f"h_{to_subscript(i+1)}" for i in range(n)])
@@ -47,17 +47,17 @@ denominator = " + ".join([f"{h_values[i]}" for i in range(n)])
 formula_with_values = rf"Esr = \frac{{{numerator}}}{{{denominator}}} = \frac{{{weighted_sum}}}{{{H}}} = {Esr}"
 st.latex(formula_with_values)
 
-ratio = H / D if D != 0 else 0
-st.latex(r"\frac{H}{D} = \frac{" + f"{H}" + "}{" + f"{D}" + "} = " + f"{ratio}")
+ratio = round(H / D if D != 0 else 0, 3)
+st.latex(r"\frac{H}{D} = \frac{" + f"{H}" + "}{" + f"{round(D,3)}" + "} = " + f"{ratio}")
 
-En = E_values[-1]
+En = round(E_values[-1], 3)
 
 st.latex(r"E_{" + str(n) + r"} = " + f"{En}")
 
-Esr_over_En = Esr / En if En != 0 else 0
+Esr_over_En = round(Esr / En if En != 0 else 0, 3)
 st.latex(r"\frac{Esr}{E_{" + str(n) + r"}} = \frac{" + f"{Esr}" + "}{" + f"{En}" + "} = " + f"{Esr_over_En}")
 
-En_over_Eo = En / Eo if Eo != 0 else 0
+En_over_Eo = round(En / Eo if Eo != 0 else 0, 3)
 st.latex(r"\frac{E_{" + str(n) + r"}}{E_o} = \frac{" + f"{En}" + "}{" + f"{Eo}" + "} = " + f"{En_over_Eo}")
 
 # Зареждане на данни от новите CSV файлове
@@ -78,7 +78,7 @@ for fi_val in unique_fi:
         x=df_level['H/D'],
         y=df_level['y'],
         mode='lines',
-        name=f'ϕ = {fi_val}',
+        name=f'ϕ = {round(fi_val,3)}',
         line=dict(width=2)
     ))
 
@@ -90,7 +90,7 @@ for val in unique_esr_eo:
         x=df_level['H/D'],
         y=df_level['y'],
         mode='lines',
-        name=f'Esr/Eo = {val}',
+        name=f'Esr/Eo = {round(val,3)}',
         line=dict(width=2)
     ))
 
