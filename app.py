@@ -12,7 +12,7 @@ def to_subscript(number):
 # Входни параметри
 n = st.number_input("Брой пластове (n)", min_value=2, step=1, value=3)
 D = st.selectbox("Избери D", options=[32.04, 34.0], index=0)
-Eo = st.number_input("Eo", value=100.0, step=0.1)
+Eo = st.number_input("Eo", value=30, step=1)
 Fi_input = st.number_input("Fi (ϕ) стойност", value=15, step=1)
 
 # Въвеждане на h_i и E_i за всеки пласт
