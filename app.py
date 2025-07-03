@@ -57,9 +57,6 @@ st.latex(r"E_{" + str(n) + r"} = " + f"{En}")
 Esr_over_En = round(Esr / En if En != 0 else 0, 3)
 st.latex(r"\frac{Esr}{E_{" + str(n) + r"}} = \frac{" + f"{Esr}" + "}{" + f"{En}" + "} = " + f"{Esr_over_En}")
 
-En_over_Eo = round(En / Eo if Eo != 0 else 0, 3)
-st.latex(r"\frac{E_{" + str(n) + r"}}{E_o} = \frac{" + f"{En}" + "}{" + f"{Eo}" + "} = " + f"{En_over_Eo}")
-
 # Зареждане на данни от новите CSV файлове
 df_fi = pd.read_csv("fi.csv")  # CSV с колони: y, H/D, fi
 df_esr_eo = pd.read_csv("Esr_Eo.csv")  # CSV с колони: y, H/D, Esr/Eo
@@ -123,7 +120,6 @@ if lower_index is not None:
                 p2 = np.array([x_arr[j + 1], y_arr[j + 1]])
                 t = (x0 - x_arr[j]) / (x_arr[j + 1] - x_arr[j])
                 return p1 + t * (p2 - p1)
-        # При излизане извън интервала връщаме крайната точка
         if x0 < x_arr[0]:
             return np.array([x_arr[0], y_arr[0]])
         else:
@@ -136,10 +132,8 @@ if lower_index is not None:
     t = (target_sr_Eo - lower_val) / (upper_val - lower_val)
     interp_point = point_lower + t * vec
 
-    # Задаваме x на червената точка = ratio (H/D)
     interp_point[0] = ratio
 
-    # Добавяне на червена точка
     fig.add_trace(go.Scatter(
         x=[interp_point[0]],
         y=[interp_point[1]],
@@ -148,7 +142,6 @@ if lower_index is not None:
         name='Интерполирана точка'
     ))
 
-    # Вертикална линия от H/D до пресичане със Esr/Eo (червената точка)
     fig.add_trace(go.Scatter(
         x=[ratio, ratio],
         y=[0, interp_point[1]],
@@ -157,13 +150,12 @@ if lower_index is not None:
         name='Вертикална линия до Esr/Eo'
     ))
 
-    # Функция за обратна интерполация - намира x за дадено y по даден DataFrame
     def interp_x_for_y(df, y_target, x_col='H/D', y_col='y'):
         x_arr = df[x_col].values
         y_arr = df[y_col].values
         for k in range(len(y_arr) - 1):
             y1, y2 = y_arr[k], y_arr[k + 1]
-            if (y1 - y_target) * (y2 - y_target) <= 0:  # y_target между y1 и y2
+            if (y1 - y_target) * (y2 - y_target) <= 0:
                 x1, x2 = x_arr[k], x_arr[k + 1]
                 if y2 == y1:
                     return x1
@@ -172,8 +164,6 @@ if lower_index is not None:
                 return x_interp
         return None
 
-    # Намиране на пресичане с изолинията fi (ϕ), зададена от потребителя
-    # Ще търсим най-близките стойности на fi около Fi_input
     fi_values_sorted = sorted(df_fi['fi'].unique())
     lower_index_fi = None
     for i in range(len(fi_values_sorted) - 1):
@@ -188,16 +178,13 @@ if lower_index is not None:
         df_fi_lower = df_fi[df_fi['fi'] == fi_lower_val].sort_values(by='H/D')
         df_fi_upper = df_fi[df_fi['fi'] == fi_upper_val].sort_values(by='H/D')
 
-        # За y = interp_point[1] (червената точка), намираме x при fi_lower и fi_upper
         x_fi_lower = interp_x_for_y(df_fi_lower, interp_point[1])
         x_fi_upper = interp_x_for_y(df_fi_upper, interp_point[1])
 
         if x_fi_lower is not None and x_fi_upper is not None:
-            # Линеарна интерполация по fi
             t_fi = (Fi_input - fi_lower_val) / (fi_upper_val - fi_lower_val)
             x_fi_interp = x_fi_lower + t_fi * (x_fi_upper - x_fi_lower)
 
-            # Оранжева точка (пресичане на хоризонтална линия от червената точка до fi)
             orange_x = x_fi_interp
             orange_y = interp_point[1]
 
@@ -209,7 +196,6 @@ if lower_index is not None:
                 name='Оранжева точка'
             ))
 
-            # Вертикална линия от оранжевата точка до y=1.35
             fig.add_trace(go.Scatter(
                 x=[orange_x, orange_x],
                 y=[orange_y, 1.35],
@@ -218,7 +204,6 @@ if lower_index is not None:
                 name='Вертикална линия от оранжевата точка до y=1.35'
             ))
 
-# Настройки на графиката
 fig.update_layout(
     xaxis_title="H/D",
     yaxis_title="y",
@@ -228,3 +213,4 @@ fig.update_layout(
 )
 
 st.plotly_chart(fig, use_container_width=True)
+
