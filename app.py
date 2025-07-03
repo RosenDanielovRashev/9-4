@@ -253,6 +253,9 @@ fig.update_layout(
         tickvals=np.linspace(xaxis_min, xaxis_max, 11),  # примерно 11 tick-а
         ticktext=[f"{(0.20 * (x - xaxis_min) / (xaxis_max - xaxis_min)):.3f}" for x in np.linspace(xaxis_min, xaxis_max, 11)],  # мащабирани стойности
         title='σᵣ / p',
+        fixedrange=True,
+        showticklabels=True,
+
     ),
     yaxis=dict(
         title='y',
