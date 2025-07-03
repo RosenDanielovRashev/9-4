@@ -87,7 +87,7 @@ for val in unique_esr_eo:
         line=dict(width=2)
     ))
 
-# Функция за линейна интерполация на точка (x_target) по H/D за дадена крива
+# --- Функция за интерполация на точка по H/D
 def get_point_on_curve(df, x_target):
     x_vals = df['H/D'].values
     y_vals = df['y'].values
@@ -100,23 +100,43 @@ def get_point_on_curve(df, x_target):
             return np.array([x_target, y_interp])
     return None
 
-# --- ЧЕРВЕНА ТОЧКА и вертикална червена линия от x=H/D до y на червената точка
-closest_val = min(unique_esr_eo, key=lambda x: abs(x - Esr_over_Eo))
-df_closest = df_esr_eo[df_esr_eo['Esr_Eo'] == closest_val].sort_values(by='H/D')
+# --- Интерполация на червена точка между изолинии
+unique_esr_eo_sorted = sorted(df_esr_eo['Esr_Eo'].unique())
+lower_vals = [v for v in unique_esr_eo_sorted if v <= Esr_over_Eo]
+upper_vals = [v for v in unique_esr_eo_sorted if v >= Esr_over_Eo]
 
-point_on_esr_eo = get_point_on_curve(df_closest, ratio)
+if lower_vals and upper_vals:
+    v1 = lower_vals[-1]
+    v2 = upper_vals[0]
+    
+    if v1 == v2:
+        df_interp = df_esr_eo[df_esr_eo['Esr_Eo'] == v1]
+        point_on_esr_eo = get_point_on_curve(df_interp, ratio)
+    else:
+        df1 = df_esr_eo[df_esr_eo['Esr_Eo'] == v1].sort_values(by='H/D')
+        df2 = df_esr_eo[df_esr_eo['Esr_Eo'] == v2].sort_values(by='H/D')
+        p1 = get_point_on_curve(df1, ratio)
+        p2 = get_point_on_curve(df2, ratio)
 
+        if p1 is not None and p2 is not None:
+            t = (Esr_over_Eo - v1) / (v2 - v1)
+            y_interp = p1[1] + t * (p2[1] - p1[1])
+            point_on_esr_eo = np.array([ratio, y_interp])
+        else:
+            point_on_esr_eo = None
+else:
+    point_on_esr_eo = None
+
+# --- Визуализиране на червената точка и линии
 if point_on_esr_eo is not None:
-    # Червена точка
     fig.add_trace(go.Scatter(
         x=[point_on_esr_eo[0]],
         y=[point_on_esr_eo[1]],
         mode='markers',
         marker=dict(color='red', size=10),
-        name='Червена точка (Esr/Eo)'
+        name='Червена точка (интерполирана)'
     ))
     
-    # Вертикална линия от x=H/D от 0 до y на червената точка
     fig.add_trace(go.Scatter(
         x=[ratio, ratio],
         y=[0, point_on_esr_eo[1]],
@@ -125,10 +145,9 @@ if point_on_esr_eo is not None:
         name='Вертикална линия H/D → Esr/Eo (червена)'
     ))
     
-    # --- ОРАНЖЕВА ТОЧКА и хоризонтална линия от червената точка до пресичане с Fi_input по y
+    # Оранжева точка
     y_red = point_on_esr_eo[1]
     
-    # Функция за намиране на x (H/D) за дадена y и Fi
     def interp_x_for_fi(df, fi_target, y_target):
         df_fi_target = df[df['fi'] == fi_target]
         x_arr = df_fi_target['H/D'].values
@@ -144,14 +163,12 @@ if point_on_esr_eo is not None:
                 return x1 + t*(x2 - x1)
         return None
 
-    # Проверка дали Fi_input съществува в df_fi['fi'], ако не - използваме най-близката стойност
     if Fi_input not in df_fi['fi'].values:
         Fi_input = min(df_fi['fi'].unique(), key=lambda x: abs(x - Fi_input))
 
     x_orange = interp_x_for_fi(df_fi, Fi_input, y_red)
     
     if x_orange is not None:
-        # Оранжева точка
         fig.add_trace(go.Scatter(
             x=[x_orange],
             y=[y_red],
@@ -160,7 +177,6 @@ if point_on_esr_eo is not None:
             name='Оранжева точка'
         ))
         
-        # Хоризонтална линия от червената точка до оранжевата точка
         fig.add_trace(go.Scatter(
             x=[point_on_esr_eo[0], x_orange],
             y=[y_red, y_red],
@@ -169,10 +185,9 @@ if point_on_esr_eo is not None:
             name='Хоризонтална линия (червена → оранжева)'
         ))
         
-        # Вертикална линия от оранжевата точка до y=1.35
         fig.add_trace(go.Scatter(
             x=[x_orange, x_orange],
-            y=[y_red            , 1.35],
+            y=[y_red, 1.35],
             mode='lines',
             line=dict(color='orange', dash='dash'),
             name='Вертикална линия оранжева точка → y=1.35'
@@ -189,4 +204,3 @@ fig.update_layout(
 )
 
 st.plotly_chart(fig, use_container_width=True)
-
