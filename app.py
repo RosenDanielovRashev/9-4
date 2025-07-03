@@ -246,7 +246,7 @@ fig.update_layout(
         zeroline=False,
         tickvals=[0, 0.25, 0.5, 0.75, 1],
         ticktext=['0', '0.25', '0.5', '0.75', '1'],
-        title='σr'
+        title='σr_over_p'
     ),
     yaxis=dict(
         title='y',
