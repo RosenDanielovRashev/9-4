@@ -241,7 +241,7 @@ fig.update_layout(
     xaxis2=dict(
         overlaying='x',
         side='top',
-        range=[fig.layout.xaxis.range[0] if fig.layout.xaxis.range else None, 0.02],
+        range=[fig.layout.xaxis.range[0] if fig.layout.xaxis.range else None, 20],
         showgrid=False,
         zeroline=False,
         tickvals=[0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.20],
