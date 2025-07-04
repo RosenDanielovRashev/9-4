@@ -11,7 +11,7 @@ def to_subscript(number):
 
 # Входни параметри
 n = st.number_input("Брой пластове (n)", min_value=2, step=1, value=3)
-D = st.selectbox("Избери D", options=[32.04, 34.0], index=0)
+D = st.selectbox("Избери D", options=[32.04, 34.0, 33.0], index=0)
 Eo = st.number_input("Eo", value=30, step=1)
 Fi_input = st.number_input("Fi (ϕ) стойност", value=15, step=1)
 
